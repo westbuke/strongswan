@@ -1,10 +1,10 @@
 #!/usr/bin/make
 
-PKG = tkm
-SRC = https://git.codelabs.ch/git/$(PKG).git
-REV = 093e086c98769ddaab4be1edccf6f31f5e9ce972
+PKG = libsparkcrypto
+SRC = https://github.com/Componolit/$(PKG).git
+REV = 83ab9b991a530aca40da0ade42f7aa874b0f99fd
 
-export ADA_PROJECT_PATH=/usr/local/ada/lib/gnat
+DESTDIR = /usr/local/ada/lib/gnat
 
 all: install
 
@@ -17,8 +17,8 @@ all: install
 	@rm -f .$(PKG)-checkout-* && touch $@
 
 .$(PKG)-built-$(REV): .$(PKG)-checkout-$(REV)
-	cd $(PKG) && make
+	cd $(PKG) && make NO_SPARK=1 NO_TESTS=1
 	@rm -f .$(PKG)-built-* && touch $@
 
 install: .$(PKG)-built-$(REV)
-	cd $(PKG) && make install
+	cd $(PKG) && make NO_SPARK=1 NO_TESTS=1 DESTDIR=$(DESTDIR) install
