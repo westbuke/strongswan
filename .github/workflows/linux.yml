@@ -1,0 +1,130 @@
+name: Linux CI
+
+on: [push, pull_request]
+
+env:
+  # this test case does not actually test anything but tries to access system
+  # directories that might be inaccessible on build hosts
+  TESTS_CASES_EXCLUDE: sw_collector
+  TESTS_REDUCED_KEYLENGTHS: yes
+  LEAK_DETECTIVE: no
+  MONOLITHIC: no
+  CC: gcc
+  OS_NAME: linux
+
+jobs:
+  latest:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test: [ all, default, printf-builtin ]
+        compiler: [ gcc, clang ]
+        leak-detective: [ no, yes ]
+        monolithic: [ no, yes ]
+        exclude:
+          # leaks will show up whether we build monolithic or not
+          - leak-detective: yes
+            monolithic: yes
+          # monolithic builds don't affect the printf-hook implementation
+          - test: printf-builtin
+            monolithic: yes
+        include:
+          - test: apidoc
+          - test: dist
+          - test: nm
+          - test: nm-no-glib
+          - test: fuzzing
+            compiler: clang
+            monolithic: yes
+    env:
+      LEAK_DETECTIVE: ${{ matrix.leak-detective || 'no' }}
+      MONOLITHIC: ${{ matrix.monolithic || 'no' }}
+      CC: ${{ matrix.compiler || 'gcc' }}
+      TEST: ${{ matrix.test }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/default
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Logs ${{ github.job }}
+          path: config.log
+          retention-days: 5
+
+  coverage:
+    runs-on: ubuntu-latest
+    env:
+      TEST: coverage
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/default
+      - if: ${{ success() }}
+        run: bash <(curl -s https://codecov.io/bash)
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Logs ${{ github.job }}
+          path: config.log
+          retention-days: 5
+
+  crypto-plugins:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test: [ botan, wolfssl, openssl, gcrypt ]
+        leak-detective: [ no, yes ]
+    env:
+      LEAK_DETECTIVE: ${{ matrix.leak-detective || 'no' }}
+      TEST: ${{ matrix.test }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/default
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Logs ${{ github.job }}
+          path: config.log
+          retention-days: 5
+
+  windows-cross-compile:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test: [ win64, win32 ]
+    env:
+      MONOLITHIC: yes
+      TEST: ${{ matrix.test }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/default
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Logs ${{ github.job }}
+          path: config.log
+          retention-days: 5
+
+  xenial:
+    runs-on: ubuntu-16.04
+    strategy:
+      matrix:
+        test: [ all ]
+        compiler: [ gcc, clang ]
+        include:
+          - test: openssl-1.0
+          - test: openssl-1.0
+            leak-detective: yes
+    env:
+      LEAK_DETECTIVE: ${{ matrix.leak-detective || 'no' }}
+      CC: ${{ matrix.compiler || 'gcc' }}
+      TEST: ${{ matrix.test }}
+      UBUNTU_XENIAL: yes
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ./.github/actions/default
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Logs ${{ github.job }}
+          path: config.log
+          retention-days: 5

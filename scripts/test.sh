@@ -1,5 +1,5 @@
 #!/bin/sh
-# Build script for Travis CI
+# Build script for CI
 
 build_botan()
 {
@@ -88,8 +88,8 @@ build_tss2()
 	cd -
 }
 
-: ${TRAVIS_BUILD_DIR=$PWD}
-: ${DEPS_BUILD_DIR=$TRAVIS_BUILD_DIR/..}
+: ${BUILD_DIR=$PWD}
+: ${DEPS_BUILD_DIR=$BUILD_DIR/..}
 : ${DEPS_PREFIX=/usr/local}
 
 TARGET=check
@@ -140,10 +140,11 @@ all|coverage|sonarcloud)
 			--disable-osx-attr --disable-tkm --disable-uci
 			--disable-unwind-backtraces
 			--disable-svc --disable-dbghelp-backtraces --disable-socket-win
-			--disable-kernel-wfp --disable-kernel-iph --disable-winhttp"
+			--disable-kernel-wfp --disable-kernel-iph --disable-winhttp
+			--disable-python-eggs-install"
 	# not enabled on the build server
 	CONFIG="$CONFIG --disable-af-alg"
-	if test "$TRAVIS_CPU_ARCH" != "amd64"; then
+	if test "$CPU_ARCH" != "amd64"; then
 		CONFIG="$CONFIG --disable-aesni --disable-rdrand"
 	fi
 	if test "$TEST" != "coverage"; then
@@ -158,8 +159,9 @@ all|coverage|sonarcloud)
 	fi
 	DEPS="$DEPS libcurl4-gnutls-dev libsoup2.4-dev libunbound-dev libldns-dev
 		  libmysqlclient-dev libsqlite3-dev clearsilver-dev libfcgi-dev
-		  libpcsclite-dev libpam0g-dev binutils-dev libnm-dev libgcrypt20-dev
-		  libjson-c-dev iptables-dev python-pip libtspi-dev libsystemd-dev"
+		  libldap2-dev libpcsclite-dev libpam0g-dev binutils-dev libnm-dev
+		  libgcrypt20-dev libjson-c-dev iptables-dev python-pip libtspi-dev
+		  libsystemd-dev"
 	PYDEPS="tox"
 	if test "$1" = "build-deps"; then
 		if test -z "$UBUNTU_XENIAL"; then
@@ -183,7 +185,7 @@ win*)
 	# no make check for Windows binaries unless we run on a windows host
 	if test "$APPVEYOR" != "True"; then
 		TARGET=
-		CCACHE=ccache
+		#CCACHE=ccache
 	else
 		CONFIG="$CONFIG --enable-openssl"
 		CFLAGS="$CFLAGS -I/c/OpenSSL-$TEST/include"
@@ -227,7 +229,7 @@ osx)
 			--enable-scepclient --enable-socket-default --enable-sshkey
 			--enable-stroke --enable-swanctl --enable-unity --enable-updown
 			--enable-x509 --enable-xauth-generic"
-	DEPS="bison gettext openssl curl"
+	DEPS="automake autoconf libtool bison gettext openssl curl"
 	BREW_PREFIX=$(brew --prefix)
 	export PATH=$BREW_PREFIX/opt/bison/bin:$PATH
 	export ACLOCAL_PATH=$BREW_PREFIX/opt/gettext/share/aclocal:$ACLOCAL_PATH
@@ -271,7 +273,7 @@ fuzzing)
 	if test -z "$1"; then
 		if test -z "$FUZZING_CORPORA"; then
 			git clone --depth 1 https://github.com/strongswan/fuzzing-corpora.git fuzzing-corpora
-			export FUZZING_CORPORA=$TRAVIS_BUILD_DIR/fuzzing-corpora
+			export FUZZING_CORPORA=$BUILD_DIR/fuzzing-corpora
 		fi
 		# these are about the same as those on OSS-Fuzz (except for the
 		# symbolize options and strip_path_prefix)
@@ -373,7 +375,7 @@ esac
 
 case "$1" in
 deps)
-	case "$TRAVIS_OS_NAME" in
+	case "$OS_NAME" in
 	linux)
 		sudo apt-get update -qq && \
 		sudo apt-get install -qq bison flex gperf gettext $DEPS
