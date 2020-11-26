@@ -1,0 +1,21 @@
+name: macOS CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    env:
+      TESTS_REDUCED_KEYLENGTHS: yes
+      LEAK_DETECTIVE: no
+      MONOLITHIC: no
+      TRAVIS_OS_NAME: osx
+      TEST: osx
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Dependencies
+        run: ./scripts/test.sh deps
+      - name: Build
+        run: ./scripts/test.sh
