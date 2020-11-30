@@ -1,0 +1,58 @@
+name: Windows CI
+
+on: [push, pull_request]
+
+env:
+  TESTS_REDUCED_KEYLENGTHS: yes
+  LEAK_DETECTIVE: no
+  MONOLITHIC: yes
+
+jobs:
+  # cross-compile:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       test: [ win64, win32 ]
+  #   env:
+  #     OS_NAME: linux
+  #     TEST: ${{ matrix.test }}
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: ./.github/actions/default
+  #     - if: ${{ failure() }}
+  #       uses: actions/upload-artifact@v2
+  #       with:
+  #         name: Logs ${{ github.job }}
+  #         path: config.log
+  #         retention-days: 5
+
+  native:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - msystem: MINGW64
+            test: win64
+          - msystem: MINGW32
+            test: win32
+    env:
+      OS_NAME: windows
+      TEST: ${{ matrix.test }}
+      APP: yes
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+      - run: git config --global core.autocrlf input
+        shell: bash
+      - uses: actions/checkout@v2
+      - run: ./scripts/test.sh deps
+        shell: msys2 {0}
+      - run: ./scripts/test.sh
+        shell: msys2 {0}
+      - if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: Logs ${{ github.job }}
+          path: config.log
+          retention-days: 5

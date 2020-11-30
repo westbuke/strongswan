@@ -86,24 +86,6 @@ jobs:
           path: config.log
           retention-days: 5
 
-  windows-cross-compile:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        test: [ win64, win32 ]
-    env:
-      MONOLITHIC: yes
-      TEST: ${{ matrix.test }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: ./.github/actions/default
-      - if: ${{ failure() }}
-        uses: actions/upload-artifact@v2
-        with:
-          name: Logs ${{ github.job }}
-          path: config.log
-          retention-days: 5
-
   xenial:
     runs-on: ubuntu-16.04
     strategy:
